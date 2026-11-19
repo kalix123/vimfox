@@ -15,6 +15,9 @@ compile, and Firefox keeps updating itself as usual.
   Keys are read before the page sees them, so sites can't take them over.
 - **Link hints, a command line and a help panel**, Tridactyl-style.
 - **One plain-text config file**, reloaded the moment you save it.
+- **A tidy toolbar:** add-ons live in the puzzle-piece tray — new ones go
+  there instead of onto the toolbar (right-click → *Pin to Toolbar* to keep
+  one out).
 - **A calm, translucent look:** the sidebar and the page float as two cards
   over a Windows acrylic (blurred) backdrop; menus, settings pages and
   addons.mozilla.org are see-through too.
@@ -167,6 +170,7 @@ profile/
     vimrc                    template for your key config
     js/
       boot.sys.mjs           starts everything; browser-side keys and status
+      toolbar.sys.mjs        toolbar layout (applied once) and the add-ons tray
       vim/defaults.vimrc     built-in key bindings
       vim/keys.js            key notation (<C-d>, gg, …)
       vim/content.js         runs in every page: keys, scrolling, hints

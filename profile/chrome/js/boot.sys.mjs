@@ -17,6 +17,8 @@ import { ALIASES, COMMANDS, PAGE_COMMANDS } from "resource://profile-js/vim/comm
 import { showCmdline, showHelp } from "resource://profile-js/vim/ui.sys.mjs";
 import { clearTimeout, setInterval, setTimeout } from "resource://gre/modules/Timer.sys.mjs";
 import { NetUtil } from "resource://gre/modules/NetUtil.sys.mjs";
+import { AddonManager } from "resource://gre/modules/AddonManager.sys.mjs";
+import { applyLayoutOnce, newAddonsGoToTray } from "resource://profile-js/toolbar.sys.mjs";
 
 const CHROME_DIR = Services.dirsvc.get("UChrm", Ci.nsIFile).path;
 const VIM_DIR = PathUtils.join(CHROME_DIR, "js", "vim");
@@ -306,9 +308,22 @@ function onChromeKey(win, e) {
   }
 }
 
+let toolbarReady = false;
+function setUpToolbar(win) {
+  if (toolbarReady) return;
+  toolbarReady = true;
+  try {
+    applyLayoutOnce(win.CustomizableUI);
+    newAddonsGoToTray(win.CustomizableUI, AddonManager, setTimeout);
+  } catch (e) {
+    console.error("vimfox: toolbar setup failed", e);
+  }
+}
+
 function setUpWindow(win) {
   if (win.__vimReady || !win.gBrowser) return;
   win.__vimReady = true;
+  setUpToolbar(win);
   const status = win.document.createElementNS("http://www.w3.org/1999/xhtml", "div");
   status.id = "vim-status";
   win.document.getElementById("browser")?.append(status);

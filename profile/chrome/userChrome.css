@@ -135,10 +135,8 @@ button-group.tools-and-extensions,
   left: 10px !important;
   margin: 0 !important;
 }
-/* Extensions live in the ☰ menu (Add-ons and themes); no toolbar button. */
-#unified-extensions-button {
-  display: none !important;
-}
+/* The puzzle-piece button opens the add-ons tray (all installed add-ons;
+   new ones go there, see js/toolbar.sys.mjs). */
 #nav-bar-customization-target {
   padding-inline-start: 34px !important;   /* room for ☰ */
 }
