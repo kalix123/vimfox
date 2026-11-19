@@ -1,6 +1,6 @@
 // Copy profile/ (user.js + chrome/) into a Firefox profile. Plain Node.
 //
-//   node scripts/install.mjs                 install into the "rewrite" profile (created if missing)
+//   node scripts/install.mjs                 install into the "vimfox" profile (created if missing)
 //   node scripts/install.mjs --launch        …and start Firefox on it
 //   node scripts/install.mjs --launch --marionette   …with Marionette on, for scripts/dev-eval.mjs
 //
@@ -18,7 +18,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const opts = { profile: "rewrite", launch: false, marionette: false, installLoader: false };
+const opts = { profile: "vimfox", launch: false, marionette: false, installLoader: false };
 const argv = process.argv.slice(2);
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];

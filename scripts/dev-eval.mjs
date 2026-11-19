@@ -4,6 +4,7 @@
 //   node scripts/dev-eval.mjs "return Services.appinfo.version"
 //   node scripts/dev-eval.mjs --file some-script.js
 //   node scripts/dev-eval.mjs --screenshot out.png    (the whole browser window)
+//   node scripts/dev-eval.mjs --screenshot out.png --run setup.js   (run setup.js first, same session)
 //   node scripts/dev-eval.mjs --content "return document.title"   (in the selected tab's page)
 //   node scripts/dev-eval.mjs --content --sys "return Services.appinfo.remoteType"   (page process, privileged)
 //   node scripts/dev-eval.mjs --keys "jj<C-d>"   (type real keys into the page)
@@ -22,6 +23,9 @@ if (inContent) argv.shift();
 const systemInContent = inContent && argv[0] === "--sys";
 if (systemInContent) argv.shift();
 const shotPath = argv[0] === "--screenshot" ? argv[1] : null;
+// --screenshot out.png --run setup.js: run setup.js first, in the same session
+// (a new session moves focus, which closes the ? and : panels).
+const shotSetup = shotPath && argv[2] === "--run" ? readFileSync(argv[3], "utf8") : null;
 // --keys "jj<C-d>": type real (trusted) keys into the selected tab's page.
 const keysArg = argv[0] === "--keys" || argv[0] === "--chrome-keys" ? argv[1] : null;
 // --chrome-keys: type into the browser window itself (address bar, command line).
@@ -126,6 +130,11 @@ try {
     await send("WebDriver:ReleaseActions");
     console.log(`typed ${keysArg}`);
   } else if (shotPath) {
+    if (shotSetup) {
+      await send("WebDriver:ExecuteScript", { script: `return (async () => {
+${shotSetup}
+})();`, args: [], sandbox: "system" });
+    }
     const res = await send("WebDriver:TakeScreenshot", { full: false, hash: false });
     writeFileSync(shotPath, Buffer.from(res.value, "base64"));
     console.log(`saved ${shotPath}`);
