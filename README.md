@@ -8,7 +8,7 @@ settings, styles and scripts that turn regular Firefox into a dark,
 see-through, vertical-tab browser you drive with Vim keys. Nothing to
 compile, and Firefox keeps updating itself as usual.
 
-![vimfox: sidebar card with tabs, page card, translucent window](docs/window.png)
+![vimfox: the sidebar and page as floating cards over the blurred desktop](docs/window.webp)
 
 - **Vim keys on every page.** Websites, the new tab page, Settings,
   about:addons and addons.mozilla.org — places Tridactyl or Vimium can't run.
