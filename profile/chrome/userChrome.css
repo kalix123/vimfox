@@ -22,6 +22,7 @@
   --c-field: rgb(255 255 255 / 0.05);
   --c-hover: rgb(255 255 255 / 0.06);
   --c-menu: rgb(18 22 30 / 0.55);   /* translucent: menus get the Windows backdrop */
+  --c-glass: rgb(14 18 26 / 0.9);   /* in-window panels (address bar dropdown), plus a backdrop blur */
 
   /* Firefox's theme variables, so built-in widgets follow along. */
   --toolbar-bgcolor: transparent !important;
@@ -384,10 +385,31 @@ menupopup menuseparator {
   opacity: 0.4;
 }
 
-/* Address-bar suggestions open inside the window, over the see-through
-   frame: keep them a little translucent too. */
-#urlbar[open] .urlbar-background {
-  background-color: rgb(16 20 28 / 0.86) !important;
+/* Address-bar suggestions: drawn inside the window (not a separate popup),
+   so they get a frosted look from a backdrop blur of whatever is behind them
+   instead of the Windows acrylic. Firefox 160 paints the dropdown with
+   these urlbar.css / view-nova.css variables. */
+#urlbar {
+  --urlbar-background-color-focus: var(--c-glass) !important;
+  --urlbarview-background-color-hover: rgb(255 255 255 / 0.05) !important;
+  --urlbarview-background-color-selected: rgb(255 255 255 / 0.10) !important;
+  --urlbarview-text-color-selected: var(--c-text) !important;
+  --urlbarview-action-button-background-color: rgb(255 255 255 / 0.07) !important;
+  --urlbarview-separator-color: var(--c-line) !important;
+}
+#urlbar[open] .urlbar-background,
+#urlbar .urlbarView-background {
+  background-color: var(--c-glass) !important;
+  backdrop-filter: blur(22px) saturate(1.25);
+}
+#urlbar .urlbarView-background {
+  border: 1px solid var(--c-line) !important;
+  border-radius: 0 0 var(--c-radius) var(--c-radius) !important;
+  /* No drop shadow: it spilled past the sidebar card onto the page edge. */
+  box-shadow: none !important;
+}
+#urlbar .urlbarView-row[selected] {
+  box-shadow: inset 2px 0 0 var(--c-accent);
 }
 
 /* ---- Vim status (pending keys, HINT, IGNORE, messages) ---------------------- */
