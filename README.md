@@ -193,8 +193,15 @@ every page you navigate to — gets a key listener before its own scripts run.
 
 ## Developing
 
+Develop in a **separate profile**, never the one you browse with:
+`--marionette` turns on Firefox's automation interface, which lets any local
+program read and control everything in that browser — open tabs, page
+contents, cookies, signed-in sessions. A throwaway `vimfox-dev` profile keeps
+that away from your real one (and `--launch` only restarts the profile it is
+given, so your everyday Firefox stays open).
+
 ```
-node scripts/install.mjs --launch --marionette                       # start with automation on
+node scripts/install.mjs --profile vimfox-dev --launch --marionette  # dev profile, automation on
 node scripts/dev-eval.mjs "return gBrowser.tabs.length"              # run code in the browser window
 node scripts/dev-eval.mjs --content "return document.title"         # …in the current page
 node scripts/dev-eval.mjs --content --sys "return Services.appinfo.remoteType"   # …privileged
@@ -209,5 +216,7 @@ before writing CSS and to test keys. Under automation Firefox blanks the new
 tab page, and focus returns to the page after each typed key (which closes
 the `?` and `:` panels), so test those by hand.
 
-`content.js` can't be reloaded in a running browser; `install.mjs --launch`
-restarts Firefox. Config changes apply live.
+`content.js` can't be reloaded in a running browser; run the install command
+above again to restart the dev profile with your changes. Config changes
+apply live. When you're done, close the dev window and delete the profile
+from `about:profiles` in your normal Firefox (**Delete** → *Delete Files*).
