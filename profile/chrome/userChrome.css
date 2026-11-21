@@ -402,12 +402,6 @@ menupopup menuseparator {
   background-color: var(--c-glass) !important;
   backdrop-filter: blur(22px) saturate(1.25);
 }
-#urlbar .urlbarView-background {
-  border: 1px solid var(--c-line) !important;
-  border-radius: 0 0 var(--c-radius) var(--c-radius) !important;
-  /* No drop shadow: it spilled past the sidebar card onto the page edge. */
-  box-shadow: none !important;
-}
 #urlbar .urlbarView-row[selected] {
   box-shadow: inset 2px 0 0 var(--c-accent);
 }
