@@ -4,6 +4,8 @@
 //
 //   VimKeys.keyName(keyboardEvent) -> "j", "G", "<C-d>", "<Esc>", "<S-Insert>", or null
 //   VimKeys.parseKeys("gg<C-d>")   -> ["g", "g", "<C-d>"]
+//   VimKeys.feedKey(state, key, config) -> what a key press means (see below)
+//   VimKeys.PAGE_COMMANDS            commands that run inside the page
 //
 // Canonical form: modifiers in the order C (ctrl), A (alt), M (meta), S
 // (shift). Shift is only written for named keys and for letters combined with
@@ -96,5 +98,44 @@ var VimKeys = (() => {
     return el.ownerDocument?.designMode === "on";
   }
 
-  return { keyName, parseKeys, isEditable };
+  // One key press against the bindings. `state` ({ buffer: [], count: "" })
+  // is updated in place. Returns:
+  //   { type: "run", binding, count }  a complete binding
+  //   { type: "pending", display }     a count or the start of a sequence
+  //   { type: "cancel" }               <Esc> dropped a pending sequence
+  //   { type: "none" }                 not ours; let the key through
+  function feedKey(state, key, config) {
+    const clear = () => {
+      state.buffer = [];
+      state.count = "";
+    };
+    if (key === "<Esc>" && (state.buffer.length || state.count)) {
+      clear();
+      return { type: "cancel" };
+    }
+    if (/^[0-9]$/.test(key) && !state.buffer.length && (state.count || key !== "0") && !config.bindings[key]) {
+      state.count += key;
+      return { type: "pending", display: state.count };
+    }
+    state.buffer.push(key);
+    const seq = state.buffer.join("");
+    const binding = config.bindings[seq];
+    if (binding) {
+      const count = Number(state.count || 0);
+      clear();
+      return { type: "run", binding, count };
+    }
+    if (config.prefixes.includes(seq)) return { type: "pending", display: state.count + seq };
+    // A key that ends a dead sequence gets a fresh look on its own ("g" then "j").
+    const hadPending = state.buffer.length > 1;
+    clear();
+    return hadPending ? feedKey(state, key, config) : { type: "none" };
+  }
+
+  const PAGE_COMMANDS = [
+    "scrolldown", "scrollup", "scrollleft", "scrollright", "halfpagedown", "halfpageup",
+    "pagedown", "pageup", "scrolltop", "scrollbottom", "hint", "hinttab", "focusinput", "toggleignore",
+  ];
+
+  return { keyName, parseKeys, isEditable, feedKey, PAGE_COMMANDS };
 })();

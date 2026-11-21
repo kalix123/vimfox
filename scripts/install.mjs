@@ -29,6 +29,8 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === "--install-loader") opts.installLoader = true;
   else throw new Error(`unknown option ${a}`);
 }
+// The name ends up in a PowerShell command (stopFirefoxOn); keep it plain.
+if (!/^[\w.-]+$/.test(opts.profile)) throw new Error(`profile names may only use letters, digits, . - _ (got "${opts.profile}")`);
 
 const win = platform() === "win32";
 const mac = platform() === "darwin";

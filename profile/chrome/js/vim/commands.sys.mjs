@@ -9,12 +9,17 @@ function copy(text) {
   Cc["@mozilla.org/widget/clipboardhelper;1"].getService(Ci.nsIClipboardHelper).copyString(text);
 }
 
+// Text typed on the command line or taken from the clipboard. Same rules as
+// typing into the address bar (URLs open, anything else searches), except
+// javascript: and data: addresses, which could run script from a pasted
+// string.
 function openText(win, text, where) {
   text = (text ?? "").trim();
-  if (!text) return "clipboard is empty";
-  // Same rules as typing into the address bar: URLs open, anything else searches.
+  if (!text) return "nothing to open";
   const info = Services.uriFixup.getFixupURIInfo(text, Ci.nsIURIFixup.FIXUP_FLAG_FIX_SCHEME_TYPOS | Ci.nsIURIFixup.FIXUP_FLAG_ALLOW_KEYWORD_LOOKUP);
-  win.openTrustedLinkIn(info.preferredURI.spec, where);
+  const uri = info.preferredURI;
+  if (!uri || uri.schemeIs("javascript") || uri.schemeIs("data")) return "refused to open that address";
+  win.openTrustedLinkIn(uri.spec, where);
   return "";
 }
 
@@ -74,9 +79,20 @@ export const COMMANDS = {
     const input = win.gURLBar.inputField;
     input?.setSelectionRange?.(input.value.length, input.value.length);
   },
-  opentab: (win, n, [url, mode] = []) => {
-    if (!url) return;
-    win.openTrustedLinkIn(url, "tab", { inBackground: mode === "background" });
+  // Link from a hint (F). The URL comes from a web page, so only http(s), and
+  // opened with that page's permissions (boot passes its principal).
+  opentab: (win, n, [url, mode] = [], principal = null) => {
+    let uri;
+    try {
+      uri = Services.io.newURI(url);
+    } catch {
+      return "not a link";
+    }
+    if (!uri.schemeIs("http") && !uri.schemeIs("https")) return "only http(s) links open in a new tab";
+    win.openLinkIn(uri.spec, "tab", {
+      inBackground: mode === "background",
+      triggeringPrincipal: principal ?? Services.scriptSecurityManager.createNullPrincipal({}),
+    });
   },
   clipboardopen: (win) => openText(win, win.readFromClipboard(), "current"),
   clipboardtabopen: (win) => openText(win, win.readFromClipboard(), "tab"),
@@ -94,11 +110,6 @@ export const COMMANDS = {
   zoomreset: (win) => win.FullZoom.reset(),
 };
 
-// Commands content.js runs inside the page; the browser window forwards them.
-export const PAGE_COMMANDS = new Set([
-  "scrolldown", "scrollup", "scrollleft", "scrollright", "halfpagedown", "halfpageup",
-  "pagedown", "pageup", "scrolltop", "scrollbottom", "hint", "hinttab", "focusinput", "toggleignore",
-]);
 
 // Every command, for the ? help and : completion. `args` describes what the
 // command takes when typed on the command line.

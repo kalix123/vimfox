@@ -13,7 +13,7 @@
 //   - Browser-level commands live in vim/commands.sys.mjs.
 
 import { applyLine, parseConfig } from "resource://profile-js/vim/config.sys.mjs";
-import { ALIASES, COMMANDS, PAGE_COMMANDS } from "resource://profile-js/vim/commands.sys.mjs";
+import { ALIASES, COMMANDS } from "resource://profile-js/vim/commands.sys.mjs";
 import { showCmdline, showHelp } from "resource://profile-js/vim/ui.sys.mjs";
 import { clearTimeout, setInterval, setTimeout } from "resource://gre/modules/Timer.sys.mjs";
 import { NetUtil } from "resource://gre/modules/NetUtil.sys.mjs";
@@ -28,6 +28,7 @@ const DEFAULTS_VIMRC = PathUtils.join(VIM_DIR, "defaults.vimrc"); // shipped def
 const keysScope = {};
 Services.scriptloader.loadSubScript("resource://profile-js/vim/keys.js", keysScope);
 const { VimKeys } = keysScope;
+const PAGE_COMMANDS = new Set(VimKeys.PAGE_COMMANDS);
 
 // --- config ----------------------------------------------------------------
 // Built-in defaults, then the user's chrome/vimrc, then :set/:bind/:unbind
@@ -90,7 +91,7 @@ async function checkConfig() {
   }
   if (stamp.join() !== configStamp) {
     configStamp = stamp.join();
-    await loadConfig();
+    loadConfig();
   }
 }
 
@@ -206,10 +207,10 @@ function showStatus(win, text, transient = false) {
 }
 
 // --- running commands ------------------------------------------------------------
-function runCommand(win, cmd, args = [], count = 0) {
+function runCommand(win, cmd, args = [], count = 0, principal = null) {
   const fn = META[cmd] ?? COMMANDS[cmd];
   if (fn) {
-    const msg = fn(win, count, args);
+    const msg = fn(win, count, args, principal);
     if (msg) showStatus(win, msg, true);
     return;
   }
@@ -230,20 +231,35 @@ function browserFor(bcId) {
   return windowOf(browser)?.gBrowser ? browser : null;
 }
 
+// Messages from page processes. Those processes run untrusted web content,
+// so a command is only carried out if it is one of the user's own bindings
+// (exactly as bound) — never e.g. :set editor followed by :config. The one
+// extra is opentab from link hints, limited to http(s) links and opened with
+// the page's own permissions.
+function isBound(cmd, args) {
+  const want = JSON.stringify([cmd, ...(Array.isArray(args) ? args : [])]);
+  return Object.values(config.bindings).some((b) => JSON.stringify([b.cmd, ...b.args]) === want);
+}
+
 const pageMessages = {
   receiveMessage(msg) {
-    const browser = browserFor(msg.data.bcId);
+    const browser = browserFor(msg.data?.bcId);
     if (!browser) return;
     const win = windowOf(browser);
     if (msg.name === "Vim:Command") {
+      const { cmd, args, count } = msg.data;
+      const fromHint = cmd === "opentab" && Array.isArray(args) && args.length <= 2 && typeof args[0] === "string";
+      if (!fromHint && !isBound(cmd, args)) return;
+      const principal = fromHint ? BrowsingContext.get(msg.data.bcId)?.currentWindowGlobal?.documentPrincipal : null;
       try {
-        runCommand(win, msg.data.cmd, msg.data.args, msg.data.count);
+        runCommand(win, cmd, fromHint ? args : [...args], Math.min(Math.max(Number(count) || 0, 0), 999), principal);
       } catch (e) {
-        console.error(`vim: ${msg.data.cmd} failed`, e);
+        console.error(`vim: ${cmd} failed`, e);
       }
     } else if (msg.name === "Vim:Status") {
-      tabStatus.set(browser, msg.data.text);
-      if (browser === win.gBrowser.selectedBrowser) showStatus(win, msg.data.text);
+      const text = String(msg.data.text ?? "").slice(0, 60);
+      tabStatus.set(browser, text);
+      if (browser === win.gBrowser.selectedBrowser) showStatus(win, text);
     }
   },
 };
@@ -269,43 +285,26 @@ function onChromeKey(win, e) {
   }
   if (win.document.querySelector("menupopup[open], panel[panelopen]")) return;
 
-  const reset = () => {
-    st.buffer = [];
-    st.count = "";
-    clearTimeout(st.timer);
-  };
-  if (/^[0-9]$/.test(key) && !st.buffer.length && (st.count || key !== "0") && !config.bindings[key]) {
-    st.count += key;
-    e.preventDefault();
-    e.stopPropagation();
-    showStatus(win, st.count);
+  const wasPending = st.buffer.length > 0 || st.count !== "";
+  const result = VimKeys.feedKey(st, key, config);
+  clearTimeout(st.timer);
+  if (result.type === "none") {
+    if (wasPending) showStatus(win, "");
     return;
   }
-  st.buffer.push(key);
-  const seq = st.buffer.join("");
-  const binding = config.bindings[seq];
-  if (binding) {
-    e.preventDefault();
-    e.stopPropagation();
-    const count = Number(st.count || 0);
-    reset();
-    showStatus(win, "");
-    runCommand(win, binding.cmd, binding.args, count);
-  } else if (config.prefixes.includes(seq)) {
-    e.preventDefault();
-    e.stopPropagation();
-    showStatus(win, st.count + seq);
-    clearTimeout(st.timer);
+  e.preventDefault();
+  e.stopPropagation();
+  if (result.type === "pending") {
+    showStatus(win, result.display);
     st.timer = setTimeout(() => {
-      reset();
+      st.buffer = [];
+      st.count = "";
       showStatus(win, "");
     }, Number(config.settings.timeout ?? 1500));
-  } else {
-    const hadPending = st.buffer.length > 1;
-    reset();
-    showStatus(win, "");
-    if (hadPending) onChromeKey(win, e);
+    return;
   }
+  showStatus(win, "");
+  if (result.type === "run") runCommand(win, result.binding.cmd, result.binding.args, result.count);
 }
 
 let toolbarReady = false;

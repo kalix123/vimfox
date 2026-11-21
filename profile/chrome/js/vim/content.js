@@ -40,7 +40,7 @@
     Services.cpmm.sendAsyncMessage("Vim:Command", { bcId: topId(win), cmd, args, count });
   }
   function status(win, text) {
-    Services.cpmm.sendAsyncMessage("Vim:Status", { bcId: topId(win), text });
+    Services.cpmm.sendAsyncMessage("Vim:Status", { bcId: topId(win), text: String(text).slice(0, 60) });
   }
 
   // --- scrolling -------------------------------------------------------------
@@ -367,50 +367,30 @@
 
   function handleKey(win, key, e) {
     const s = stateFor(win);
-    const cfg = config();
-    if (key === "<Esc>" && (s.buffer.length || s.count)) {
-      consume(e);
-      reset(win);
-      status(win, "");
+    const wasPending = s.buffer.length > 0 || s.count !== "";
+    const result = VimKeys.feedKey(s, key, config());
+    clearTimeout(s.timer);
+    if (result.type === "none") {
+      if (wasPending) status(win, "");
       return;
     }
-    if (/^[0-9]$/.test(key) && !s.buffer.length && (s.count || key !== "0") && !cfg.bindings[key]) {
-      consume(e);
-      s.count += key;
-      status(win, s.count);
-      return;
-    }
-    s.buffer.push(key);
-    const seq = s.buffer.join("");
-    const binding = cfg.bindings[seq];
-    if (binding) {
-      consume(e);
-      const count = Number(s.count || 0);
-      reset(win);
-      status(win, "");
-      try {
-        run(win, binding, count);
-      } catch (err) {
-        console.error("vim: command failed", binding.cmd, err);
-      }
-      return;
-    }
-    if (cfg.prefixes.includes(seq)) {
-      consume(e);
-      status(win, s.count + seq);
-      clearTimeout(s.timer);
+    consume(e);
+    if (result.type === "pending") {
+      status(win, result.display);
       s.timer = setTimeout(() => {
         reset(win);
         status(win, "");
       }, Number(setting("timeout", 1500)));
       return;
     }
-    // Not a binding: drop what was pending; a key that ended a dead sequence
-    // gets a fresh look on its own ("g" then "j" still scrolls).
-    const hadPending = s.buffer.length > 1;
-    reset(win);
     status(win, "");
-    if (hadPending) handleKey(win, key, e);
+    if (result.type === "run") {
+      try {
+        run(win, result.binding, result.count);
+      } catch (err) {
+        console.error("vim: command failed", result.binding.cmd, err);
+      }
+    }
   }
 
   // Commands the browser forwards here (e.g. "f" pressed while focus was in the

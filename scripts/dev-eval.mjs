@@ -30,7 +30,6 @@ const shotSetup = shotPath && argv[2] === "--run" ? readFileSync(argv[3], "utf8"
 const keysArg = argv[0] === "--keys" || argv[0] === "--chrome-keys" ? argv[1] : null;
 // --chrome-keys: type into the browser window itself (address bar, command line).
 const keysToChrome = argv[0] === "--chrome-keys";
-if (keysArg) argv.splice(0, argv.length, "--screenshot-skip");
 
 // WebDriver key values for the names used in vimrc notation.
 const WD_KEYS = { Esc: "", CR: "", Tab: "", BS: "", Insert: "", Del: "", Space: " ", Up: "", Down: "", Left: "", Right: "", PageUp: "", PageDown: "", Home: "", End: "", lt: "<" };

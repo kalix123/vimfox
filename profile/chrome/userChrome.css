@@ -118,9 +118,12 @@ button-group.tools-and-extensions,
   padding: 8px 10px 0 !important;
   min-height: var(--c-toolbox-h) !important;
   align-items: flex-start !important;
+  --toolbarbutton-inner-padding: 7px !important;
+  --toolbarbutton-outer-padding: 1px !important;
 }
 #nav-bar-customization-target {
   margin-inline-start: 0 !important;
+  padding-inline-start: 34px !important;   /* room for ☰ */
 }
 /* Spacer between ☰ on the left and back, forward, sidebar on the right. */
 #vertical-spacer {
@@ -138,9 +141,6 @@ button-group.tools-and-extensions,
 }
 /* The puzzle-piece button opens the add-ons tray (all installed add-ons;
    new ones go there, see js/toolbar.sys.mjs). */
-#nav-bar-customization-target {
-  padding-inline-start: 34px !important;   /* room for ☰ */
-}
 /* Address bar: its own full-width row under the buttons. */
 #urlbar-container {
   position: absolute !important;
@@ -259,6 +259,7 @@ sidebar-main,
 
 /* ---- Page card --------------------------------------------------------- */
 #tabbrowser-tabbox {
+  position: relative !important; /* the ? and : panels are placed inside it */
   padding: var(--c-caption-h) var(--c-gap) var(--c-gap) var(--c-gap) !important;
 }
 .browserStack {
@@ -333,10 +334,6 @@ sidebar-main,
 }
 
 /* ---- Decluttering the toolbar and address bar --------------------------- */
-#nav-bar {
-  --toolbarbutton-inner-padding: 7px !important;
-  --toolbarbutton-outer-padding: 1px !important;
-}
 #nav-bar .toolbarbutton-1 {
   opacity: 0.85;
 }
@@ -435,9 +432,6 @@ menupopup menuseparator {
 
 /* ---- Vim help (?) and command line (:) ------------------------------------- */
 /* Created by js/vim/ui.sys.mjs inside #tabbrowser-tabbox, over the page card. */
-#tabbrowser-tabbox {
-  position: relative !important;
-}
 #vim-help,
 #vim-cmdline {
   position: absolute;

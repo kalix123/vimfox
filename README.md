@@ -191,6 +191,22 @@ pages run in sandboxed processes that can't read the profile folder, so the
 code travels as text instead of being loaded from a file. Every page — and
 every page you navigate to — gets a key listener before its own scripts run.
 
+## Security
+
+- **Pages can't drive the browser.** Web pages run in sandboxed processes;
+  the browser only carries out a command from one if it is exactly one of
+  your bindings. The single exception is opening a link from  hints,
+  which is limited to http(s) links and opened with that page's own
+  permissions.
+- **No script from pasted text:** ,  and  refuse
+   and  addresses.
+- **The trust boundary is your profile folder.** Like any userChrome.js setup,
+  whatever can write to the profile's  folder can run code with
+  the browser's full rights. Only install vimfox from a source you trust, and
+  don't point it at a profile folder other programs can write to.
+-  (developing only) hands control of that browser to local
+  programs — use a separate profile for it (below).
+
 ## Developing
 
 Develop in a **separate profile**, never the one you browse with:
