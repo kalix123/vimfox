@@ -195,16 +195,16 @@ every page you navigate to — gets a key listener before its own scripts run.
 
 - **Pages can't drive the browser.** Web pages run in sandboxed processes;
   the browser only carries out a command from one if it is exactly one of
-  your bindings. The single exception is opening a link from  hints,
+  your bindings. The single exception is opening a link from `F` hints,
   which is limited to http(s) links and opened with that page's own
   permissions.
-- **No script from pasted text:** ,  and  refuse
-   and  addresses.
+- **No script from pasted text:** `p`, `P` and `:open` refuse `javascript:`
+  and `data:` addresses.
 - **The trust boundary is your profile folder.** Like any userChrome.js setup,
-  whatever can write to the profile's  folder can run code with
+  whatever can write to the profile's `chrome/js` folder can run code with
   the browser's full rights. Only install vimfox from a source you trust, and
   don't point it at a profile folder other programs can write to.
--  (developing only) hands control of that browser to local
+- `--marionette` (developing only) hands control of that browser to local
   programs — use a separate profile for it (below).
 
 ## Developing
