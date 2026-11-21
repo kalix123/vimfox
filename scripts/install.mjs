@@ -12,7 +12,7 @@
 // (--launch restarts it).
 
 import { execFileSync, spawn } from "node:child_process";
-import { cpSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { closeSync, cpSync, existsSync, mkdirSync, openSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -94,7 +94,29 @@ if (!profileDir) {
   profileDir = findProfile(opts.profile);
   console.log(`created profile "${opts.profile}"`);
 }
-if (opts.launch) stopFirefoxOn(opts.profile);
+// Firefox holds parent.lock open exclusively while it runs a profile (Windows).
+function profileInUse(dir) {
+  const lock = join(dir, "parent.lock");
+  if (!win || !existsSync(lock)) return false;
+  try {
+    closeSync(openSync(lock, "r+"));
+    return false;
+  } catch (e) {
+    return ["EBUSY", "EPERM", "EACCES"].includes(e.code);
+  }
+}
+const sleep = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+if (opts.launch) {
+  stopFirefoxOn(opts.profile);
+  for (let i = 0; i < 20 && profileInUse(profileDir); i++) sleep(250);
+}
+// --launch only closes Firefox windows started with -P <profile>; one opened
+// as the default profile (from the normal Firefox icon) has to be closed by hand.
+if (profileInUse(profileDir)) {
+  console.error(`Firefox is running on the "${opts.profile}" profile. Close it (all its windows) and run this again.`);
+  process.exit(1);
+}
 
 mkdirSync(profileDir, { recursive: true });
 cpSync(join(root, "profile", "user.js"), join(profileDir, "user.js"));
